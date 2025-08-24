@@ -9,13 +9,13 @@ export VLLM_ALLOW_LONG_MAX_MODEL_LEN=1
 export VLLM_ENGINE_ITERATION_TIMEOUT_S=100000000000
 
 # Find the directory where rllm package is located
-RLLM_DIR=$(python3 -c "import rllm; import os; print(os.path.dirname(os.path.dirname(rllm.__file__)))")
+# RLLM_DIR=$(python3 -c "import rllm; import os; print(os.path.dirname(os.path.dirname(rllm.__file__)))")
 
 MODEL_PATH=deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B
 
 
 
-python examples/data_preprocess/rllm.py --train_dataset_name "deepscaler" --local_dir data/rllm
+python examples/data_preprocess/rllm.py --local_dir data/rllm
 
 ## Commonly
 max_prompt_length=$((1024 * 4))
@@ -23,7 +23,8 @@ max_prompt_length=$((1024 * 4))
 #--------------------------------------
 
 ## Entropy_Coeff
-entropy_coeff=0.001
+# entropy_coeff=0.001
+entropy_coeff=0
 
 #----------Adaptive Entropy----------#
 target_entropy=0.28
@@ -86,8 +87,8 @@ use_kl_loss=True
 kl_loss_coef=0.001
 
 
-train_file_path = data/rllm/deepscaler.parquet
-val_file_path = data/rllm/aime24.parquet
+train_file_path=data/rllm/deepscaler.parquet
+val_file_path=data/rllm/aime24.parquet
 
 
 
@@ -98,18 +99,17 @@ python3 -m verl.trainer.main_ppo \
     data.train_files=${train_file_path} \
     data.val_files=${val_file_path} \
     data.train_batch_size=128 \
-    data.val_batch_size=512 \
+    data.val_batch_size=128 \
     data.max_prompt_length=${max_prompt_length} \
     data.max_response_length=$RES_LENGTH \
     actor_rollout_ref.model.path=$MODEL_PATH \
     actor_rollout_ref.actor.optim.lr=1e-6 \
     actor_rollout_ref.model.use_remove_padding=True \
-    actor_rollout_ref.actor.ppo_mini_batch_size=16 \
+    actor_rollout_ref.actor.ppo_mini_batch_size=1 \
     actor_rollout_ref.actor.ppo_epochs=1 \
     actor_rollout_ref.actor.use_dynamic_bsz=True \
     actor_rollout_ref.actor.ppo_max_token_len_per_gpu=$MAX_TOKEN_LEN \
     actor_rollout_ref.actor.use_kl_loss=${use_kl_loss} \
-    +actor_rollout_ref.actor.calculate_kl_loss=${calculate_kl_loss} \
     actor_rollout_ref.actor.kl_loss_coef=${kl_loss_coef} \
     actor_rollout_ref.actor.kl_loss_type=low_var_kl \
     actor_rollout_ref.actor.clip_ratio_low=${clip_ratio_low} \
@@ -123,10 +123,11 @@ python3 -m verl.trainer.main_ppo \
     actor_rollout_ref.rollout.tensor_model_parallel_size=$TP \
     actor_rollout_ref.rollout.name=vllm \
     actor_rollout_ref.rollout.temperature=0.6 \
-    +actor_rollout_ref.rollout.val_temperature=0.6 \
+    actor_rollout_ref.rollout.val_kwargs.temperature=0.6 \
     actor_rollout_ref.rollout.gpu_memory_utilization=0.85 \
     actor_rollout_ref.rollout.n=8 \
-    actor_rollout_ref.rollout.val_kwargs.n=32 \
+    actor_rollout_ref.rollout.val_kwargs.n=4 \
+    actor_rollout_ref.rollout.free_cache_engine=False \
     actor_rollout_ref.ref.fsdp_config.param_offload=True \
     +actor_rollout_ref.rollout.max_model_len=$((max_prompt_length + $RES_LENGTH)) \
     ++actor_rollout_ref.rollout.enable_chunked_prefill=True \

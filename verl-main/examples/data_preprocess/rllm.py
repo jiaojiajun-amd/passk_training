@@ -35,23 +35,23 @@ if __name__ == "__main__":
     train_dataset = datasets.load_dataset(train_data_source, split="train")
 
     # Load AIME24 for testing
-    test_data_source = "math-ai/aime24"
-    test_dataset = datasets.load_dataset(test_data_source, split="test")
+    test_data_source = "HuggingFaceH4/aime_2024"
+    test_dataset = datasets.load_dataset(test_data_source, split="train")
 
-    instruction_following = 'Let\'s think step by step and output the final answer after "####".'
+    instruction_following = "Let's think step by step and output the final answer within \\boxed{}."
 
     # Process training dataset
     def make_train_map_fn():
         def process_fn(example, idx):
             # Extract question and answer from DeepScaleR dataset
             # Adjust these field names based on the actual dataset structure
-            question_raw = example.get("question", example.get("prompt", ""))
-            answer_raw = example.get("answer", example.get("response", ""))
+            question_raw = example.get("problem", "")
+            answer_raw = example.get("answer", "")
             
             question = question_raw + " " + instruction_following
 
             data = {
-                "data_source": train_data_source,
+                "data_source": "math_dapo",
                 "prompt": [
                     {
                         "role": "user",
@@ -76,13 +76,13 @@ if __name__ == "__main__":
         def process_fn(example, idx):
             # Extract question and answer from AIME24 dataset
             # Adjust these field names based on the actual dataset structure
-            question_raw = example.get("question", example.get("prompt", ""))
+            question_raw = example.get("problem", example.get("prompt", ""))
             answer_raw = example.get("answer", example.get("response", ""))
             
             question = question_raw + " " + instruction_following
 
             data = {
-                "data_source": test_data_source,
+                "data_source": "aime24",
                 "prompt": [
                     {
                         "role": "user",
